@@ -17,6 +17,8 @@
     <link rel="apple-touch-icon" sizes="192x192" href="./bau-dashboard-icon.png" />
     <link rel="apple-touch-icon" sizes="512x512" href="./bau-dashboard-icon.png" />
 <style>
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css");
+
 :root {
   --bg: #fbfaf8;
   --surface: rgba(255, 255, 255, 0.92);
@@ -45,9 +47,10 @@ body {
   overflow: hidden;
 }
 
-@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css");  
-  
 body {
+  margin: 0;
+  min-height: 100%;
+  color: var(--text);
   font-family:
     "Pretendard",
     -apple-system,
@@ -57,6 +60,13 @@ body {
     "Malgun Gothic",
     sans-serif;
   font-feature-settings: "tnum";
+  background:
+    radial-gradient(circle at 14% 3%, rgba(139, 92, 246, 0.08), transparent 28%),
+    radial-gradient(circle at 90% 2%, rgba(242, 140, 24, 0.08), transparent 27%),
+    linear-gradient(180deg, #fffdf9 0%, #f7f4ee 100%);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
 }
 
 button,
@@ -67,6 +77,36 @@ select {
 
 svg {
   display: block;
+}
+
+.date-chip,
+.time-chip,
+.time-chip time,
+.metric-card strong,
+.metric-lines strong,
+.visit-metric strong,
+.rate-line strong,
+.rate-line b,
+.target-input strong,
+.event-summary-line strong,
+.event-audience-grid strong,
+.progress-ring span,
+.gauge,
+.detail-modal,
+.tour-summary-card strong,
+.mentor-summary-card strong,
+.event-detail-summary strong,
+.visit-detail-summary strong,
+.visit-progress-row,
+.visit-progress-head,
+.event-detail-num,
+.event-detail-month-total,
+.event-detail-month-attendance,
+.event-detail-month-count,
+.monthly-card,
+.detail-list-row {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
 }
 
 .dashboard-shell {
@@ -2975,7 +3015,7 @@ let visitDetailMapZoomLevel = 0;
 let visitDetailMapPan = { x: 0, y: 0 };
 let visitDetailMapDragState = null;
 const domCache = {};
-const DASHBOARD_API_URL = "https://script.google.com/macros/s/AKfycbzucxalYQnCZ5XGKlo9gEtrGx88d-BoxaTMa01cSqI_nb3G1Bd6hPkZT7wvV5XnrynOvw/exec";
+const DASHBOARD_API_URL = "https://script.google.com/macros/s/AKfycbz9BShPt6sIx_-nCfgyb13iwoOKi_FKaKi8gEEiRF7pYcL1cu0Izl7wcZqvOZjqulbE-Q/exec";
 
 const progressPreview =
   typeof globalThis !== "undefined" &&
