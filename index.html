@@ -3003,6 +3003,7 @@ let visitData = null;
 let selectedDepartment = "all";
 let lastPayloadSignature = "";
 let dataRefreshTimer = null;
+let clockTimer = null;
 let mapZoomLevel = 0;
 const mapBaseViewBox = { x: 111, y: 165, width: 459, height: 278 };
 const mapDefaultScale = 1.1;
@@ -3015,7 +3016,9 @@ let visitDetailMapZoomLevel = 0;
 let visitDetailMapPan = { x: 0, y: 0 };
 let visitDetailMapDragState = null;
 const domCache = {};
-const DASHBOARD_API_URL = "https://script.google.com/macros/s/AKfycbzdHV5OW8JOO5avOoPeeh7WzfK480l2rXMGQnbVmVLEtIIP820lg4ycm-aFq4MgetRT/exec";
+const DASHBOARD_API_URL = "https://script.google.com/macros/s/AKfycbztksDoFNRjtUrqQInbXWCUGwFm8YBjTxtsfAXngmLJJDa8K4vy9MoRVsAV9L0uLjWP/exec";
+const DASHBOARD_PAYLOAD_STORAGE_KEY = "promotionDashboardPayload:v1";
+const DASHBOARD_PAYLOAD_STORAGE_MAX_AGE = 24 * 60 * 60 * 1000;
 
 const progressPreview =
   typeof globalThis !== "undefined" &&
@@ -3962,7 +3965,34 @@ function applyDepartmentFilter() {
   el_("#mapCountText").textContent = `총 ${formatNumber(visibleCount)}개 기관`;
 }
 
-function renderDashboardPayload(payload) {
+function readCachedDashboardPayload() {
+  try {
+    if (typeof localStorage === "undefined") return null;
+    const raw = localStorage.getItem(DASHBOARD_PAYLOAD_STORAGE_KEY);
+    if (!raw) return null;
+    const cached = JSON.parse(raw);
+    if (!cached || !cached.payload || !cached.savedAt) return null;
+    if (Date.now() - Number(cached.savedAt) > DASHBOARD_PAYLOAD_STORAGE_MAX_AGE) {
+      localStorage.removeItem(DASHBOARD_PAYLOAD_STORAGE_KEY);
+      return null;
+    }
+    return cached.payload;
+  } catch (error) {
+    console.warn("저장된 대시보드 데이터를 읽지 못했습니다.", error);
+    return null;
+  }
+}
+
+function writeCachedDashboardPayload(payload) {
+  try {
+    if (typeof localStorage === "undefined" || !payload) return;
+    localStorage.setItem(DASHBOARD_PAYLOAD_STORAGE_KEY, JSON.stringify({ savedAt: Date.now(), payload }));
+  } catch (error) {
+    console.warn("대시보드 데이터를 브라우저에 저장하지 못했습니다.", error);
+  }
+}
+
+function renderDashboardPayload(payload, options = {}) {
   dashboardData = payload.dashboardData;
   visitData = payload.visitData;
   const departmentLogo = el_("#departmentLogo");
@@ -3976,15 +4006,18 @@ function renderDashboardPayload(payload) {
   if (!el_("#mentorDetailModal").hidden) renderMentorDetailModal();
   if (!el_("#eventDetailModal").hidden) renderEventDetailModal();
   if (!el_("#visitDetailModal").hidden) renderVisitDetailModal();
+  if (!options.fromCache) writeCachedDashboardPayload(payload);
 }
 
-function startDashboard(payload) {
+function startDashboard(payload, options = {}) {
   renderClock();
   lastPayloadSignature = payloadSignature(payload);
-  renderDashboardPayload(payload);
-  setInterval(renderClock, 1000);
+  renderDashboardPayload(payload, options);
+  if (!clockTimer) {
+    clockTimer = window.setInterval(renderClock, 1000);
+  }
   startDataRefreshLoop();
-  showStatusToast("데이터를 불러왔습니다.", "success");
+  showStatusToast(options.fromCache ? "저장된 데이터로 먼저 표시했습니다." : "데이터를 불러왔습니다.", options.fromCache ? "idle" : "success");
 }
 
 function loadDashboardPayload() {
@@ -4049,7 +4082,10 @@ function checkForDataUpdates() {
       renderDashboardPayload(payload);
       showStatusToast("데이터가 업데이트되었습니다.", "success");
     })
-    .catch(showLoadError);
+    .catch((error) => {
+      console.error(error);
+      showStatusToast("데이터 확인에 실패했습니다.", "idle");
+    });
 }
 
 function startDataRefreshLoop() {
@@ -4082,8 +4118,19 @@ function boot() {
   window.addEventListener("resize", updateVisitDetailModalScale);
   setupDetailModals();
 
-  showStatusToast("데이터를 불러오는 중입니다.", "loading");
-  loadDashboardPayload().then(startDashboard).catch(showLoadError);
+  const cachedPayload = readCachedDashboardPayload();
+  if (cachedPayload) {
+    startDashboard(cachedPayload, { fromCache: true });
+    showStatusToast("저장된 데이터 표시 후 새 데이터를 확인 중입니다.", "loading");
+  } else {
+    showStatusToast("데이터를 불러오는 중입니다.", "loading");
+  }
+  loadDashboardPayload()
+    .then((payload) => startDashboard(payload))
+    .catch(cachedPayload ? (error) => {
+      console.error(error);
+      showStatusToast("새 데이터 확인에 실패해 저장된 데이터를 표시 중입니다.", "idle");
+    } : showLoadError);
 }
 
 </script>
